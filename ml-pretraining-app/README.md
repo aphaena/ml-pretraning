@@ -8,22 +8,22 @@ This project is designed for pre-training machine learning models using custom d
 
 ```
 ml-pretraining-app
+├── .venv
 ├── src
-│   ├── data
-│   │   ├── preprocessing.py
-│   │   └── loader.py
-│   ├── models
-│   │   └── model.py
 │   ├── config
 │   │   └── config.yaml
+│   ├── data
+│   │   └── loader.py
+│   ├── models
+│   │   ├── mistral_handler.py
+│   │   └── mistral_trainer.py
 │   ├── utils
 │   │   └── helpers.py
-│   └── train.py
-├── tests
-│   └── test_preprocessing.py
+│   └── __pycache__
+├── README.md
 ├── requirements.txt
-└── README.md
-```
+│── test_run.py
+└── .gitignore
 
 ## Setup Instructions
 
@@ -32,8 +32,6 @@ ml-pretraining-app
    git clone <repository-url>
    cd ml-pretraining-app
    ```
-
-
 
 2. Install the required dependencies:
 
@@ -65,3 +63,8 @@ This application includes:
 - Unit tests to ensure the correctness of preprocessing steps.
 
 Feel free to contribute to the project or reach out for any questions!
+
+
+# Copy your PDF files to the data/pdfs directory
+# On Windows:
+copy your_documents/*.pdf data/pdfs/
