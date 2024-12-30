@@ -1,0 +1,68 @@
+hyperparameters:
+  learning_rate: 0.001
+  batch_size: 32
+  epochs: 50
+
+dataset:
+  train_data_path: "data/train.csv"
+  validation_data_path: "data/validation.csv"
+
+training_options:
+  shuffle: true
+  use_early_stopping: true
+  early_stopping_patience: 5
+
+logging:
+  log_dir: "logs/"
+  log_level: "INFO"
+
+model:
+  name: "TheBloke/Mistral-7B-Instruct-v0.2-GGUF"  # Modèle public et accessible
+  use_local: true  # Indicateur pour utiliser LM Studio en local
+  max_length: 2048
+  batch_size: 4
+
+lmstudio:
+  api_url: "http://localhost:1234/v1"
+  timeout: 30
+  max_retries: 3
+  local_mode: true
+  model_id: "mistral-7b-instruct"
+  tokenizer_name: "hf-internal-testing/llama-tokenizer"  # Tokenizer public
+
+fine_tuning:
+  base_model: "local-model"
+  output_dir: "./results"
+  epochs: 3
+  batch_size: 4
+  learning_rate: 2e-5
+  max_length: 2048
+  gradient_accumulation_steps: 4
+
+lora:
+  rank: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: 
+    - "q_proj"
+    - "v_proj"
+    - "k_proj"
+    - "o_proj"
+
+training:
+  output_dir: "./results"
+  num_train_epochs: 3
+  learning_rate: 2e-4
+  fp16: true
+  logging_steps: 100
+  save_strategy: "epoch"
+  gradient_accumulation_steps: 4
+
+pdf_processing:
+  pdf_dir: "./data/pdfs"  # Chemin relatif depuis la racine du projet
+  chunk_size: 1000
+  min_chunk_length: 100
+  supported_languages: ["fr", "en"]
+  
+prompts:
+  - instruction: "Extrais les noms des individus mentionnés et décris leur rôle ou fonction dans le contexte donné."
