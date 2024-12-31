@@ -51,6 +51,15 @@ ml-pretraining-app
 
 ## Usage
 
+change prompt in config.yaml 
+exemple:
+  - instruction: "Résume ce passage du document."
+  - instruction: "Extrais les informations principales de ce passage."
+  - instruction: "Identifie les problèmes en te basant sur le document."
+  - instruction: "Extrais les personnes et leur fonction dans le document"
+  - instruction: "Extrais les mots-clés du document suivant."
+  - instruction: "Extrais les acronymes et leur définition du document suivant."
+
 To start the training process, run the following command:
 ```
 python test_run.py
@@ -71,3 +80,5 @@ Feel free to contribute to the project or reach out for any questions!
 # Copy your PDF files to the data/pdfs directory
 # On Windows:
 copy your_documents/*.pdf data/pdfs/
+
+

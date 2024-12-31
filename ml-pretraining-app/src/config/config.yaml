@@ -66,9 +66,12 @@ pdf_processing:
   
 prompts:
   - instruction: "Résume ce passage du document."
-  - instruction: "Extrais les informations principales de ce passage."
-  - instruction: "Réponds à cette question en te basant sur le document."
+  - instruction: "Extrais les informations principales de ce passage."  
   - instruction: "Trouve les mots-clés du document suivant."
   - instruction: "Trouve les acronymes et leur définition du document suivant."
+  - instruction: "Identifie les problèmes évoqués dans le document."
+  - instruction: "Extrais les personnes et leur fonction dans le document"
+  - instruction: "Extrais les mots-clés du document suivant."
+  - instruction: "Extrais les acronymes et leur définition du document suivant."
 
 
