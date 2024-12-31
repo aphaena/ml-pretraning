@@ -4,6 +4,9 @@
 
 This project is designed for pre-training machine learning models using custom datasets. It provides a structured approach to data preprocessing, model architecture definition, and training.
 
+Install cuda toolkit
+https://developer.nvidia.com/cuda-downloads
+
 ## Project Structure
 
 ```
