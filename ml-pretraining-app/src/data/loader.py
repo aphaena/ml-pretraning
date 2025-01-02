@@ -71,6 +71,18 @@ class DataLoader:
         except Exception as e:
             print(f"Erreur lors du traitement avec LM Studio: {e}")
             return text
+        
+    def process_text_with_instructions(self, text: str) -> List[dict]:
+        """Process text with all configured instructions"""
+        results = []
+        for instruction in self.config['prompts']:
+            result = self.process_with_lmstudio(text, instruction['instruction'])
+            results.append({
+                'instruction': instruction['instruction'],
+                'input': text,
+                'output': result
+            })
+        return results        
 
     def extract_text_from_pdf(self, pdf_path: str) -> str:
         """Extrait le texte d'un fichier PDF."""
@@ -139,6 +151,7 @@ class DataLoader:
         for filename in os.listdir(self.pdf_dir):
             # Vérification de l'extension PDF
             if filename.endswith('.pdf'):
+                print(f"Traitement du fichier: {filename}")
                 # Construction du chemin complet du fichier
                 pdf_path = os.path.join(self.pdf_dir, filename)
                 # Extraction du texte du PDF
@@ -150,20 +163,22 @@ class DataLoader:
                 for chunk in chunks:
                     # Vérification que le chunk n'est pas vide
                     if chunk.strip():
-                        # Ajout des exemples d'entraînement avec différentes instructions
-                        training_data.extend([
-                            {
-                                "instruction": "Résume ce passage du document.",
+                        # Pour chaque instruction dans la configuration
+                        for prompt in self.config['prompts']:
+                            instruction = prompt['instruction']
+                            # Création de la requête pour LM Studio
+                            prompt_text = f"{instruction}\n\nTexte: {chunk}"
+                            # Obtention de la réponse
+                            response = self.process_with_lmstudio(prompt_text)
+                            # Ajout à l'ensemble d'entraînement
+                            training_data.append({
+                                "instruction": instruction,
                                 "input": chunk,
-                                "output": self.summarize_chunk(chunk)
-                            },
-                            {
-                                "instruction": "Extrais les informations principales de ce passage.",
-                                "input": chunk,
-                                "output": self.extract_key_points(chunk)
-                            }
-                        ])
+                                "output": response
+                            })
+                            print(f"Instruction traitée: {instruction[:50]}...")
         
+        print(f"Nombre total d'exemples générés: {len(training_data)}")
         return training_data
 
     def prepare_data(self, examples: List[dict]) -> dict:
