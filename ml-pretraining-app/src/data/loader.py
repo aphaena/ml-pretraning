@@ -21,6 +21,11 @@ class DataLoader:
         self.config = config
         self.pdf_dir = pdf_dir
         self.max_length = 2048
+        self.session = requests.Session()
+
+        self.headers = {
+            "Content-Type": "application/json", "Connection": "keep-alive" # Ensure the connection is kept alive
+        }
 
         try:
             # Utiliser le tokenizer spécifié dans la configuration
@@ -32,7 +37,7 @@ class DataLoader:
             print(f"Tokenizer '{tokenizer_name}' chargé avec succès")
 
             # Vérifier si LM Studio est disponible
-            response = requests.get(f"{config['lmstudio']['api_url']}/models")
+            response = self.session.get(f"{config['lmstudio']['api_url']}/models", headers=self.headers)
             if response.status_code == 200:
                 print("LM Studio détecté en local")
                 self.use_local = True
@@ -48,8 +53,9 @@ class DataLoader:
     def process_with_lmstudio(self, text: str) -> str:
         """Utilise LM Studio pour le traitement du texte"""
         try:
-            response = requests.post(
+            response = self.session.post(
                 f"{self.api_url}/chat/completions",
+                headers=self.headers,
                 json={
                     "messages": [{"role": "user", "content": text}],
                     "temperature": 0.7,
