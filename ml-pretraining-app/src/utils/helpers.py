@@ -14,5 +14,4 @@ def save_model(model, filepath):
 
 def load_model(filepath):
     """Loads a model from the specified filepath."""
-    from tensorflow.keras.models import load_model
     return load_model(filepath)
