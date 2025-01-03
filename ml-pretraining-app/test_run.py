@@ -27,18 +27,29 @@ def main():
         config=config
     )
     
-    # Charger les données
-    training_data = loader.load_data()
-    print(f"Nombre d'exemples d'entraînement générés: {len(training_data)}")
+    # Proposer de charger les données existantes
+    print("\n=== Données d'entraînement ===")
+    training_data = loader.load_all_training_data()
+    
+    if training_data is None:
+        print("\nGénération de nouvelles données...")
+        training_data = loader.load_data()  # Génère et sauvegarde de nouvelles données
 
-    # Afficher un exemple
     if training_data:
         print("\nExemple d'entraînement :")
         print("Instruction:", training_data[0]['instruction'])
         print("Input:", training_data[0]['input'][:200], "...")
         print("Output:", training_data[0]['output'])
+
+        # Traitement des données avec LM Studio
+        print("\nTraitement des données dans LM Studio...")
+        loader.upload_to_lmstudio(
+            data=training_data,
+            api_url=config['lmstudio']['api_url'],
+            headers={"Content-Type": "application/json", "Connection": "keep-alive"}
+        )   
     else:
-        print("Aucune donnée trouvée. Vérifiez que des fichiers PDF sont présents dans le dossier data/pdfs")
+        print("Aucune donnée trouvée ou générée.")
 
 if __name__ == "__main__":
     main()

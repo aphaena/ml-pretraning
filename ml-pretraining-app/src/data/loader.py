@@ -5,6 +5,8 @@ from transformers import AutoTokenizer
 import torch
 import requests
 import json
+import pickle
+import datetime
 
 class DataLoader:
     def __init__(self, model_name=None, pdf_dir="data/pdfs", config=None):
@@ -49,6 +51,10 @@ class DataLoader:
             print(f"Erreur: {e}")
             print("Assurez-vous que LM Studio est lancé et accessible sur http://localhost:1234")
             raise
+
+        # Ajout du répertoire de sauvegarde
+        self.save_dir = os.path.join(os.getcwd(), 'data', 'training_data')
+        os.makedirs(self.save_dir, exist_ok=True)
 
     def process_with_lmstudio(self, text: str) -> str:
         """Utilise LM Studio pour le traitement du texte"""
@@ -179,6 +185,10 @@ class DataLoader:
                             print(f"Instruction traitée: {instruction[:50]}...")
         
         print(f"Nombre total d'exemples générés: {len(training_data)}")
+
+        # Sauvegarde automatique des données générées
+        self.save_training_data(training_data)
+        
         return training_data
 
     def prepare_data(self, examples: List[dict]) -> dict:
@@ -205,3 +215,131 @@ class DataLoader:
         # Préparation des données pour l'entraînement
         prepared_data = self.prepare_data(examples)
         return prepared_data
+
+    def save_training_data(self, training_data: List[dict], filename: str = None) -> str:
+        """Sauvegarde les données d'entraînement"""
+        if filename is None:
+            # Création d'un nom de fichier avec la date et l'heure
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"training_data_{timestamp}"
+
+        # Création des chemins de fichiers
+        json_path = os.path.join(self.save_dir, f"{filename}.json")
+        pickle_path = os.path.join(self.save_dir, f"{filename}.pkl")
+
+        # Sauvegarde au format JSON (lisible)
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(training_data, f, ensure_ascii=False, indent=2)
+
+        # Sauvegarde au format Pickle (complet avec métadonnées)
+        metadata = {
+            'timestamp': timestamp,
+            'config': self.config,
+            'model_name': self.config['model']['name'],
+            'num_examples': len(training_data)
+        }
+        with open(pickle_path, 'wb') as f:
+            pickle.dump({'data': training_data, 'metadata': metadata}, f)
+
+        print(f"Données sauvegardées dans:\n- {json_path}\n- {pickle_path}")
+        return filename
+
+    def load_training_data(self, filename: str) -> List[dict]:
+        """Charge les données d'entraînement sauvegardées"""
+        pickle_path = os.path.join(self.save_dir, f"{filename}.pkl")
+        
+        try:
+            with open(pickle_path, 'rb') as f:
+                saved_data = pickle.load(f)
+                print(f"Métadonnées du fichier chargé:")
+                for key, value in saved_data['metadata'].items():
+                    print(f"- {key}: {value}")
+                return saved_data['data']
+        except Exception as e:
+            print(f"Erreur lors du chargement des données: {e}")
+            return None
+
+    def list_available_training_data(self) -> List[Dict]:
+        """Liste tous les fichiers d'entraînement disponibles"""
+        available_files = []
+        for filename in os.listdir(self.save_dir):
+            if filename.endswith('.pkl'):
+                file_path = os.path.join(self.save_dir, filename)
+                try:
+                    with open(file_path, 'rb') as f:
+                        saved_data = pickle.load(f)
+                        available_files.append({
+                            'filename': filename,
+                            'metadata': saved_data['metadata'],
+                            'path': file_path
+                        })
+                except Exception as e:
+                    print(f"Erreur lors de la lecture de {filename}: {e}")
+        return available_files
+
+    def load_all_training_data(self) -> List[dict]:
+        """Charge et combine toutes les données d'entraînement disponibles"""
+        all_data = []
+        available_files = self.list_available_training_data()
+        
+        if not available_files:
+            print("Aucun fichier d'entraînement trouvé.")
+            return None
+            
+        print("\nFichiers d'entraînement disponibles:")
+        for idx, file_info in enumerate(available_files):
+            print(f"\n{idx + 1}. {file_info['filename']}")
+            print("   Métadonnées:")
+            for key, value in file_info['metadata'].items():
+                if key != 'config':  # Skip printing full config
+                    print(f"   - {key}: {value}")
+
+        response = input("\nVoulez-vous charger ces données? (o/n): ").lower()
+        if response != 'o':
+            print("Chargement des données annulé.")
+            return None
+
+        print("\nChargement des données...")
+        for file_info in available_files:
+            try:
+                with open(file_info['path'], 'rb') as f:
+                    saved_data = pickle.load(f)
+                    all_data.extend(saved_data['data'])
+                print(f"✓ {file_info['filename']} chargé ({len(saved_data['data'])} exemples)")
+            except Exception as e:
+                print(f"✗ Erreur lors du chargement de {file_info['filename']}: {e}")
+
+        print(f"\nTotal: {len(all_data)} exemples chargés depuis {len(available_files)} fichiers")
+        return all_data
+    
+
+    def upload_to_lmstudio(self, data, api_url, headers):
+        """Utilise LM Studio pour traiter des données via /v1/chat/completions"""
+        for idx, example in enumerate(data):
+            try:
+                response = self.session.post(
+                    f"{api_url}/chat/completions",
+                    headers=headers,
+                    json={
+                        "model": "default",  # Remplacez par le modèle souhaité, si applicable
+                        "messages": [                            
+                            {"role": "user", "content": f"{example['instruction']}\n\n{example['input']}"}
+                        ],
+                        "max_tokens": 500,
+                        "temperature": 0.7
+                    },
+                    timeout=10  # Timeout pour éviter les blocages
+                )
+                if response.status_code == 200:
+                    result = response.json()
+                    if "choices" in result:
+                        example["output"] = result["choices"][0]["message"]["content"]
+                        print(f"Exemple {idx + 1}/{len(data)} traité avec succès.")
+                    else:
+                        print(f"Réponse inattendue pour l'exemple {idx + 1}/{len(data)} : {result}")
+                else:
+                    print(f"Erreur pour l'exemple {idx + 1}/{len(data)} : {response.status_code}, {response.text}")
+            except requests.exceptions.RequestException as e:
+                print(f"Erreur réseau pour l'exemple {idx + 1}/{len(data)} : {e}")
+            except KeyError as e:
+                print(f"Clé manquante dans la réponse pour l'exemple {idx + 1}/{len(data)} : {e}")
